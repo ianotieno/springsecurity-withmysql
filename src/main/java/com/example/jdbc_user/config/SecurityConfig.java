@@ -19,7 +19,7 @@ public class SecurityConfig {
 InMemoryUserDetailsManager users(){
     return new InMemoryUserDetailsManager(
      User.withUsername("ian")
-         .password("test")
+         .password("{noop}test")
          .roles("ADMIN")
          .build()
     ); 
