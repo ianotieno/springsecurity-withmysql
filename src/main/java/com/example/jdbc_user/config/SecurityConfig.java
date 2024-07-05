@@ -1,16 +1,16 @@
 package com.example.jdbc_user.config;
 
-import org.springframework.security.core.userdetails.User;
-
 import javax.sql.DataSource;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.jdbc.datasource.embedded.EmbeddedDatabaseBuilder;
+import org.springframework.jdbc.datasource.embedded.EmbeddedDatabaseType;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.provisioning.InMemoryUserDetailsManager;
+import org.springframework.security.core.userdetails.jdbc.JdbcDaoImpl;
 import org.springframework.security.provisioning.JdbcUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
 
@@ -19,32 +19,31 @@ import org.springframework.security.web.SecurityFilterChain;
 @EnableMethodSecurity
 public class SecurityConfig {
 
-//@Bean 
-//InMemoryUserDetailsManager users(){
-   // return new InMemoryUserDetailsManager(
-     //User.withUsername("ian")
-      //   .password("{noop}test")
-       //  .roles("ADMIN")
-       //  .build()
-    //); 
-//}
-   @Bean
-JdbcUserDetailsManager users(DataSource dataSource){
-    JdbcUserDetailsManager jdbcUserDetailsManager= new JdbcUserDetailsManager(dataSource);
-    return  jdbcUserDetailsManager;
-}
-
-
     @Bean
-    SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception{
-        
-        return http
-        .authorizeRequests(auth-> auth
-        .anyRequest().authenticated()
-        )
-        .formLogin(Customizer.withDefaults())
-        .build();
+    DataSource dataSource() {
+        return new EmbeddedDatabaseBuilder()
+                .setType(EmbeddedDatabaseType.H2)
+                .setName("dashboard")
+                .addScript(JdbcDaoImpl.DEFAULT_USER_SCHEMA_DDL_LOCATION)
+                .build();
     }
 
+    @Bean
+    JdbcUserDetailsManager users(DataSource dataSource) {
+        JdbcUserDetailsManager jdbcUserDetailsManager = new JdbcUserDetailsManager(dataSource);
+        return jdbcUserDetailsManager;
+    }
 
+    @Bean
+    SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+        return http
+                .csrf(csrf -> csrf.ignoringRequestMatchers("/h2-console/**"))
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/h2-console/**").permitAll()
+                        .anyRequest().authenticated()
+                )
+                .headers(headers -> headers.frameOptions().sameOrigin()) // Allow frames for H2 console
+                .formLogin(Customizer.withDefaults())
+                .build();
+    }
 }
