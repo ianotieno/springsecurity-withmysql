@@ -13,6 +13,8 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.jdbc.JdbcDaoImpl;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.provisioning.JdbcUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
 
@@ -31,13 +33,13 @@ public class SecurityConfig {
     }
 
     @Bean
-    JdbcUserDetailsManager users(DataSource dataSource) {
+    JdbcUserDetailsManager users(DataSource dataSource, PasswordEncoder encoder) {
         UserDetails admin= User.builder()
             .username("admin")
-            .password("password")
+            .password(encoder.encode("test"))
             .roles("ADMIN")
             .build();
-
+        System.out.println(admin.getPassword());
         JdbcUserDetailsManager jdbcUserDetailsManager = new JdbcUserDetailsManager(dataSource);
         jdbcUserDetailsManager.createUser(admin);
         return jdbcUserDetailsManager;
@@ -54,5 +56,10 @@ public class SecurityConfig {
                 .headers(headers -> headers.frameOptions().sameOrigin()) // Allow frames for H2 console
                 .formLogin(Customizer.withDefaults())
                 .build();
+    }
+
+    @Bean
+    PasswordEncoder passwordEncoder(){
+        return new BCryptPasswordEncoder();
     }
 }
